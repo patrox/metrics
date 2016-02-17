@@ -178,15 +178,18 @@ public class InstrumentedResourceMethodApplicationListener implements Applicatio
 
     private void registerMetricsForModel(ResourceModel resourceModel) {
         for (final Resource resource : resourceModel.getResources()) {
+
+            final Timed classLevelTimed = getClassLevelTimed(resource);
+
             for (final ResourceMethod method : resource.getAllMethods()) {
-                registerTimedAnnotations(method);
+                registerTimedAnnotations(method, classLevelTimed);
                 registerMeteredAnnotations(method);
                 registerExceptionMeteredAnnotations(method);
             }
 
             for (final Resource childResource : resource.getChildResources()) {
                 for (final ResourceMethod method : childResource.getAllMethods()) {
-                    registerTimedAnnotations(method);
+                    registerTimedAnnotations(method, classLevelTimed);
                     registerMeteredAnnotations(method);
                     registerExceptionMeteredAnnotations(method);
                 }
@@ -205,8 +208,26 @@ public class InstrumentedResourceMethodApplicationListener implements Applicatio
         return listener;
     }
 
-    private void registerTimedAnnotations(final ResourceMethod method) {
+    private Timed getClassLevelTimed(final Resource resource) {
+        Timed annotation = null;
+
+        for (final Class<?> clazz : resource.getHandlerClasses()) {
+            annotation = clazz.getAnnotation(Timed.class);
+
+            if (annotation != null) {
+                break;
+            }
+        }
+        return annotation;
+    }
+
+    private void registerTimedAnnotations(final ResourceMethod method, final Timed classLevelTimed) {
         final Method definitionMethod = method.getInvocable().getDefinitionMethod();
+        if (classLevelTimed != null) {
+            timers.putIfAbsent(definitionMethod, timerMetric(this.metrics, method, classLevelTimed));
+            return;
+        }
+
         final Timed annotation = definitionMethod.getAnnotation(Timed.class);
 
         if (annotation != null) {

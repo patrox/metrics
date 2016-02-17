@@ -1,21 +1,18 @@
 package io.dropwizard.metrics.jersey2.resources;
 
-import io.dropwizard.metrics.annotation.Timed;
+import io.dropwizard.metrics.annotation.Metered;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-@Timed
-@Path("/")
+@Metered
 @Produces(MediaType.TEXT_PLAIN)
-public class InstrumentedResourcePerClass {
+public class InstrumentedSubResourceMeteredPerClass {
     @GET
-    @Path("/timedPerClass")
-    public String timedPerClass() {
+    @Path("/meteredPerClass")
+    public String meteredPerClass() {
         return "yay";
     }
-
-
 }

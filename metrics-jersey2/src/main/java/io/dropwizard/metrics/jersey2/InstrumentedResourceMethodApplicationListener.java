@@ -21,6 +21,7 @@ import io.dropwizard.metrics.Timer;
 
 import javax.ws.rs.ext.Provider;
 import javax.ws.rs.core.Configuration;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -179,18 +180,23 @@ public class InstrumentedResourceMethodApplicationListener implements Applicatio
     private void registerMetricsForModel(ResourceModel resourceModel) {
         for (final Resource resource : resourceModel.getResources()) {
 
-            final Timed classLevelTimed = getClassLevelTimed(resource);
+            final Timed classLevelTimed = getClassLevelAnnotation(resource, Timed.class);
+            final Metered classLevelMetered = getClassLevelAnnotation(resource, Metered.class);
 
             for (final ResourceMethod method : resource.getAllMethods()) {
                 registerTimedAnnotations(method, classLevelTimed);
-                registerMeteredAnnotations(method);
+                registerMeteredAnnotations(method, classLevelMetered);
                 registerExceptionMeteredAnnotations(method);
             }
 
             for (final Resource childResource : resource.getChildResources()) {
+
+                final Timed classLevelTimedChild = getClassLevelAnnotation(childResource, Timed.class);
+                final Metered classLevelMeteredChild = getClassLevelAnnotation(childResource, Metered.class);
+
                 for (final ResourceMethod method : childResource.getAllMethods()) {
-                    registerTimedAnnotations(method, classLevelTimed);
-                    registerMeteredAnnotations(method);
+                    registerTimedAnnotations(method, classLevelTimedChild);
+                    registerMeteredAnnotations(method, classLevelMeteredChild);
                     registerExceptionMeteredAnnotations(method);
                 }
             }
@@ -208,11 +214,11 @@ public class InstrumentedResourceMethodApplicationListener implements Applicatio
         return listener;
     }
 
-    private Timed getClassLevelTimed(final Resource resource) {
-        Timed annotation = null;
+    private <T extends Annotation> T getClassLevelAnnotation(final Resource resource, final Class<T> annotationClazz) {
+        T annotation = null;
 
         for (final Class<?> clazz : resource.getHandlerClasses()) {
-            annotation = clazz.getAnnotation(Timed.class);
+            annotation = clazz.getAnnotation(annotationClazz);
 
             if (annotation != null) {
                 break;
@@ -235,8 +241,13 @@ public class InstrumentedResourceMethodApplicationListener implements Applicatio
         }
     }
 
-    private void registerMeteredAnnotations(final ResourceMethod method) {
+    private void registerMeteredAnnotations(final ResourceMethod method, final Metered classLevelMetered) {
         final Method definitionMethod = method.getInvocable().getDefinitionMethod();
+
+        if (classLevelMetered != null) {
+            meters.putIfAbsent(definitionMethod, meterMetric(metrics, method, classLevelMetered));
+            return;
+        }
         final Metered annotation = definitionMethod.getAnnotation(Metered.class);
 
         if (annotation != null) {

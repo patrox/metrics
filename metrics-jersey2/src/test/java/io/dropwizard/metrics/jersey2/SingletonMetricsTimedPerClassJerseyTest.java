@@ -2,7 +2,8 @@ package io.dropwizard.metrics.jersey2;
 
 import io.dropwizard.metrics.MetricRegistry;
 import io.dropwizard.metrics.Timer;
-import io.dropwizard.metrics.jersey2.resources.InstrumentedResourcePerClass;
+import io.dropwizard.metrics.jersey2.resources.InstrumentedResourceTimedPerClass;
+import io.dropwizard.metrics.jersey2.resources.InstrumentedSubResourceTimedPerClass;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
 import org.junit.Test;
@@ -19,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * in a Jersey {@link ResourceConfig}
  */
 
-public class SingletonMetricsPerClassJerseyTest extends JerseyTest {
+public class SingletonMetricsTimedPerClassJerseyTest extends JerseyTest {
     static {
         Logger.getLogger("org.glassfish.jersey").setLevel(Level.OFF);
     }
@@ -31,8 +32,9 @@ public class SingletonMetricsPerClassJerseyTest extends JerseyTest {
         this.registry = new MetricRegistry();
 
         ResourceConfig config = new ResourceConfig();
+
         config = config.register(new MetricsFeature(this.registry));
-        config = config.register(InstrumentedResourcePerClass.class);
+        config = config.register(InstrumentedResourceTimedPerClass.class);
 
         return config;
     }
@@ -44,8 +46,22 @@ public class SingletonMetricsPerClassJerseyTest extends JerseyTest {
                 .get(String.class))
                 .isEqualTo("yay");
 
-        final Timer timer = registry.timer(name(InstrumentedResourcePerClass.class, "timedPerClass"));
+        final Timer timer = registry.timer(name(InstrumentedResourceTimedPerClass.class, "timedPerClass"));
 
         assertThat(timer.getCount()).isEqualTo(1);
     }
+
+    @Test
+    public void subresourcesFromLocatorsRegisterMetrics() {
+        assertThat(target("subresource/timedPerClass")
+                .request()
+                .get(String.class))
+                .isEqualTo("yay");
+
+        final Timer timer = registry.timer(name(InstrumentedSubResourceTimedPerClass.class, "timedPerClass"));
+        assertThat(timer.getCount()).isEqualTo(1);
+
+    }
+
+
 }

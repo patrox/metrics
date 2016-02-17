@@ -1,15 +1,14 @@
 package io.dropwizard.metrics.jersey2;
 
+import io.dropwizard.metrics.Meter;
+import io.dropwizard.metrics.MetricRegistry;
+import io.dropwizard.metrics.Timer;
+import io.dropwizard.metrics.jersey2.resources.InstrumentedResource;
+import io.dropwizard.metrics.jersey2.resources.InstrumentedSubResource;
 import org.glassfish.jersey.client.ClientResponse;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
 import org.junit.Test;
-
-import io.dropwizard.metrics.jersey2.resources.InstrumentedResource;
-import io.dropwizard.metrics.jersey2.resources.InstrumentedSubResource;
-import io.dropwizard.metrics.Meter;
-import io.dropwizard.metrics.MetricRegistry;
-import io.dropwizard.metrics.Timer;
 
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.ProcessingException;
